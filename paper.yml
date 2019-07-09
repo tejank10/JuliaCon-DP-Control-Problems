@@ -1,28 +1,29 @@
-title: "A CATCHY TITLE"
+title: "Solving Control Problems Using Differentiable Programming"
 keywords:
   - Julia
   - Differentiable Programming
   - Deep Learning
   - Automatic Differentiation
-  - Inverse Graphics
+
 authors:
+  - name: Tejan Karmali*
+    orcid: 0000-0002-9774-1547
+    affiliation: 1
+  - name: Neethu Mariya Joy*
+    affiliation: 2
   - name: Avik Pal*
     orcid: 0000-0002-3938-7375
-    affiliation: 1
-  - name: Tejan Karmali*
-    affiliation: 2
-  - name: Neethu Mariya Joy*
     affiliation: 3
   - name: Mike Innes
     affiliation: 4
 affiliations:
-  - name: Indian Institute of Technology, Kanpur
-    index: 1
   - name: National Institute of Technology, Goa
+    index: 1
+  - name: Birla Institute of Technology and Science, Pilani
     index: 2
-  - name: BITS, Pilani
+  - name: Indian Institute of Technology, Kanpur
     index: 3
-  - name: Julia Computing
+  - name: Julia Computing, Inc.
     index: 4
 date: 17 June 2019
 bibliography: ref.bib
