@@ -1,21 +1,28 @@
-title: "My JuliaCon proceeding"
+title: "A CATCHY TITLE"
 keywords:
   - Julia
-  - Optimization
-  - Game theory
-  - Compiler
+  - Differentiable Programming
+  - Deep Learning
+  - Automatic Differentiation
+  - Inverse Graphics
 authors:
-  - name: 1st author
-    orcid: 0000-0003-1361-440X
+  - name: Avik Pal*
+    orcid: 0000-0002-3938-7375
     affiliation: 1
-  - name: 2nd author
-    affiliation: 1, 2
-  - name: 3rd author
+  - name: Tejan Karmali*
     affiliation: 2
+  - name: Neethu Mariya Joy*
+    affiliation: 3
+  - name: Mike Innes
+    affiliation: 4
 affiliations:
-  - name: University
+  - name: Indian Institute of Technology, Kanpur
     index: 1
-  - name: National Lab
+  - name: National Institute of Technology, Goa
     index: 2
-date: 24 April 2019
+  - name: BITS, Pilani
+    index: 3
+  - name: Julia Computing
+    index: 4
+date: 17 June 2019
 bibliography: ref.bib

@@ -89,6 +89,7 @@ Since the we have to maximise the cumulative reward, we treat it the negative of
     }
 \end{algorithm}
 
+
 \begin{figure}[!htb]
     \centering
     \begin{subfigure}[b]{0.4\textwidth}
@@ -108,18 +109,63 @@ Since the we have to maximise the cumulative reward, we treat it the negative of
     \caption{Comparison of DP with RL algorithms}
 \end{figure}
 
+\begin{figure*}[!htb]
+    \centering
+    \includegraphics[width=\textwidth]{images/bptt.png}
+    \caption{Back Propagation through Time (BPTT)}
+    \label{fig:bptt}
+\end{figure*}
+
 \section{Differential Equations}
 \label{sec:trebuchet}
 
-Differential Equations are used to describe many natural phenomena. Problems in biological, chemical and physical systems can be expressed as ordinary differential equations or partial differential equations (\todo{ref: "Ordinary differential equations with applications in molecular biology" - Ilea, M., M. Turnea, and M. Rotariu .  }). There are a wide range of numerical integration methods available to solve these equations (\todo{ ref DiffrentialEquations.jl}). The sensitivity of the final state of an ODE solution with respect to the parameters of the ODE are of interest to many engineering applications. Flux is capable of calculating this by backpropagating through differential equation solvers (\todo{ ref https://arxiv.org/abs/1902.02376 ? }). Using these capabilities, we present a neural network training pipeline with an AD agnostic trebuchet simulator to aim at a target. The simulator is unaware of any parts of the AD system.
+Differential Equations are used to describe many natural phenomena. Problems in biological, chemical and physical systems can be expressed as ordinary differential equations. There are a wide range of numerical integration methods available to solve these equations \cite{DifferentialEquations.jl-2017}.
+
+% most of the equations mentioned here is presented at  http://virtualtrebuchet.com/#documentation_ExplanationOfSimulation
+
+As an example of a simulation using ODEs, we will discuss the case of a body in free-fall against air-resistance. Taking C as the co-efficent of drag and y as the height of the body form the ground, the equations of motions of the body can be expressed as     
+    \begin{equation}
+        \label{free-fall1}
+        \frac{d\dot{y}}{dt} = \frac{C\dot{y}^2}{m} - g
+    \end{equation}
+    \begin{equation}
+        \label{free-fall2}
+        \frac{dy}{dt} = \dot{y}
+    \end{equation}
+    
+This is a first order ODE system. We know the initial value of the velocity as 0 and height as H. We can iteratively solve this ODE with a constant time step. The termination of the simulation will involve a root finder on y.
+
+The sensitivity of the final state of an ODE solution with respect to the parameters of the ODE are of interest to many engineering applications. In the case of a free fall against air resistance, we may be interested in finding a mass for the body so that it reaches a specific spot after a given time interval. Flux is capable of calculating finding the sensitivity by back-propagating through differential equation solvers \cite{DBLP:journals/corr/abs-1902-02376}. Using these capabilities, we present a neural network training pipeline with an AD agnostic trebuchet simulator to aim at a target. The simulator is unaware of any parts of the AD system.
 
 \subsection{Trebuchet}
 
 % inside Trebuchet.jl
 
-Unlike a simulation of a body in free-fall which can be simulated using one ODE, Trebuchet.jl(\todo{ ref Trebuchet.jl }) simulates shooting a projectile from a trebuchet by solving three ODEs, one after another. The three ODEs correspond to the stages when the projectile is on the ground, hanging on the sling, and released from the sling (\todo{ref virtualtrebuchet.com }). The transition between these stages and the termination involve root finders on the ODE solutions. We make use of Euler solver method with a constant time step to solve the ODEs and find the trajectory of the projectile. 
+Unlike a simulation of a body in free-fall, Trebuchet.jl(\cite{Trebuchet.jl}) simulates shooting a projectile from a trebuchet by solving three ODE systems{\cite{TrebuchetEquations}}, one after another. The three correspond to the stages when the projectile is on the ground, hanging on the sling, and released from the sling. The transition between these stages and the termination involve root finders on the ODE solutions. We make use of Euler solver method with a constant time step to solve the ODEs and find the trajectory of the projectile. 
 
-We are interested in creating a model that provides us with the right trebuchet parameters such as mass of the counter-weight and release angle, given any wind speed and target landing position. Here, we are not doing parameter estimation for a particular target but creating a model to find the parameters for any given target. We do so by constructing our loss value out of a fully differentiable chain containing the simulator. Our neural network takes the target position and the wind speed as inputs and produces the required trebuchet parameters as outputs. We then feed these values to the simulator which solves the ODEs to find the landing position. The landing position is compared with the target to get a scalar loss value. We can differentiate through this flow using Flux. We use forward-mode differentiation to find the gradient of the loss with respect to the trebuchet parameters and back-propagate it through the neural network. Once we have the gradients, we use an optimizer such as Adam to adjust the weights in the neural network.
+We discuss the ODE system of the stage after the projectile is released. Taking Px and Py as the x and y positions of the projectile from the pivot of the trebuchet, we write these equations in julia as follows. 
+
+\begin{lstlisting}[caption={Equations after releasing projectile},
+        label = {lst:example_ode},
+        captionpos = b,
+        language = Julia]
+dPx = Pvx
+dPy = Pvy
+dPvx = -(ρ*Cd*Aeff*(Pvx-WS)*sqrt(Pvy^2+(WS-Pvx)^2))/(2*mP)
+dPvy = -Grav - (ρ*Cd*Aeff*Pvy*sqrt(Pvy^2+(WS-Pvx)^2))/(2*mP)
+    
+# where 
+# Grav =  gravitaional constant
+# ρ = density of air
+# WS = wind speed
+# Aeff = Effective Area of the Projectile
+# mP = Mass of Projectile
+# Cd = Drag Coefficient of Projectile    
+\end{lstlisting}
+
+These equations can be directly fed into OrdinaryDiffEq.jl(\cite{DifferentialEquations.jl-2017}) and solved, and the whole solver can be differentiated using Flux.
+
+We are interested in creating a model that provides us with the right trebuchet parameters such as mass of the counter-weight and release angle, given any wind speed and target landing position. Here, we are not doing parameter estimation for a particular target but creating a model to find the parameters for any given target. We do so by constructing our loss value out of a fully differentiable chain containing the simulator (Figure~\ref{fig:trebuchet}). Our neural network takes the target position and the wind speed as inputs and produces the required trebuchet parameters as outputs. We then feed these values to the simulator which solves the ODEs to find the landing position. The landing position is compared with the target to get a scalar loss value. We can differentiate through this flow using Flux. We use forward-mode differentiation to find the gradient of the loss with respect to the trebuchet parameters and back-propagate it through the neural network. Once we have the gradients, we use a gradient-based optimizer to adjust the weights in the neural network (Algorithm \ref{alg:DiffRLTrebuchet}).
 
 \begin{algorithm}[!htb]
     \caption{DP Algorithm for trebuchet}
@@ -128,9 +174,9 @@ We are interested in creating a model that provides us with the right trebuchet 
     \KwResult{parameters for model to aim the trebuchet}\
     \For{windspeed, target in data}{
         gs = gradient(params(model)) \textbf{do}\\{
-            angle, weight = model(windspeed, target)\;
-            distance = simulator(windspeed, angle, weight)\;
-            loss = mean\_squared\_loss(distance, target)\;
+        ~~~~angle, weight = model(windspeed, target)\;
+        ~~~~distance = simulator(windspeed, angle, weight)\;
+        ~~~~loss = mean\_squared\_loss(distance, target)\;
         }
         \textbf{end}\\
         \For{param in params(model)}{
@@ -139,11 +185,24 @@ We are interested in creating a model that provides us with the right trebuchet 
     }
 \end{algorithm}
 
-\todo{Add the ODE Equations}
+\begin{figure*}[!htbp]
+    \centering
+    \includegraphics[width=\linewidth]{images/trebuchet-flow.png}
+    \caption{Training the Trebuchet model by backpropagation through an ODE Solver}
+    \label{fig:trebuchet}
+\end{figure*}
+
+\begin{figure}[htbp]
+    \centering
+        \includegraphics[width=0.4\textwidth,keepaspectratio]{images/trebuchet_DPvsDDPG_10000.png}
+            \caption{DP vs. DDPG\cite{Lillicrap2015ContinuousCW} on Trebuchet with 10,000 training steps}
+            \label{fig:trebuchet_graph}
+\end{figure}
 
 \section{Challenges}
 We have used reward in loss function. The downside here is that reward has to be dependent on the model in the computation graph. If there is reward for time spent in the environment, or point scored against the opponent (sparse reward) then DP cannot capture that information. \\
 Secondly, this approach needs to be generalised for environments with discrete actions. In Pole Balancing, we could map the action generated by the model from real domain to ${-1, 1}$ because the definition of action in pole balancing allowed to do so.
+The trebuchet is able to learn fast because it can differentiate through the model. We cannot differentiate through real world. Hence, this technique is useful only when a model of the environment can be made.
 
 \section{Conclusion}
 In conclusion, we have presented how julia can be leveraged to build differentiable systems. Integrating them with the machine learning pipeline can make an end-to-end differentiable pipeline. Using this pipeline we can define differentiable programming algorithm on it to solve the problem. We gave examples of how coupling differentiable control environments, and ODE solvers with neural networks can solve the problems in a novel and faster way.
